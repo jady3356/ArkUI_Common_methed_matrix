@@ -5,13 +5,25 @@ import { SupportMatrix } from '../types';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const DATA_FILE = path.join(__dirname, '../../data/component_support_matrix.json');
+
+// 静态文件路径：支持开发和生产环境
+const isProduction = process.env.NODE_ENV === 'production';
+const staticPath = isProduction
+  ? path.join(__dirname, '../../src/frontend/dist')
+  : path.join(__dirname, '../frontend/dist');
+
+const DATA_FILE = isProduction
+  ? path.join(__dirname, '../data/component_support_matrix.json')
+  : path.join(__dirname, '../../data/component_support_matrix.json');
 
 // 中间件
 app.use(cors());
-app.use(express.json({ limit: '50mb' })); // 增加body大小限制到50MB
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(staticPath));
+
+console.log(`📁 静态文件目录: ${staticPath}`);
+console.log(`📊 数据文件: ${DATA_FILE}`);
 
 /**
  * GET /api/matrix
@@ -139,7 +151,7 @@ app.get('/api/health', (req, res) => {
  * SPA fallback - 所有其他请求返回index.html
  */
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+  res.sendFile(path.join(staticPath, 'index.html'));
 });
 
 /**

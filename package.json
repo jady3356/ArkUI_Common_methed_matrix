@@ -4,12 +4,13 @@
   "description": "ArkUI通用属性支持度可视化大盘",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run server:dev\" \"npm run frontend:dev\"",
+    "dev": "npm run init-data && concurrently \"npm run server:dev\" \"npm run frontend:dev\"",
     "server:dev": "tsx watch src/server/index.ts",
     "frontend:dev": "cd src/frontend && npm run dev",
     "frontend:build": "cd src/frontend && npm install && npm run build",
     "scan": "tsx src/scanner/index.ts",
-    "build": "npm run frontend:build && tsc",
+    "init-data": "node scripts/init-data.js",
+    "build": "npm run init-data && npm run frontend:build && tsc",
     "start": "node dist/server/index.js"
   },
   "keywords": ["arkui", "harmonyos", "visualization"],
