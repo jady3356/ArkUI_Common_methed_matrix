@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import * as path from 'path';
-import { fs } from 'fs';
 import { SupportMatrix } from '../types';
 
 const app = express();
@@ -157,7 +156,7 @@ function readMatrixData(): SupportMatrix {
   return {
     components: {},
     commonProperties: [],
-    lastScanned: null,
+    lastScanned: undefined,
     metadata: {
       version: '1.0.0',
       sdkPath: '',
