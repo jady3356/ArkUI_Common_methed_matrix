@@ -152,6 +152,66 @@ npm start
 - 重新扫描会保留所有手动标记的字段
 - 建议定期运行扫描以更新数据
 
+## 部署到 Zeabur
+
+本项目支持一键部署到 Zeabur 平台（推荐）。
+
+### 为什么选择 Zeabur？
+
+- ✅ 每月 $5 免费额度，足够小项目使用
+- ✅ 冷启动速度快，用户体验好
+- ✅ 支持从 GitHub 一键部署
+- ✅ 国内访问速度优秀
+- ✅ 按分钟计费，用多少付多少
+
+### 部署步骤
+
+1. **将代码推送到 GitHub**
+
+```bash
+git add .
+git commit -m "准备部署到 Zeabur"
+git push
+```
+
+2. **注册 Zeabur 账号**
+
+访问 [zeabur.com](https://zeabur.com) 并注册（支持 GitHub 登录）
+
+3. **创建新项目**
+
+- 点击 "New Project"
+- 选择 "Deploy from GitHub"
+- 授权并选择你的仓库
+
+4. **配置服务**
+
+Zeabur 会自动检测到这是一个 Node.js 项目并开始部署：
+- 自动运行 `npm run build` 构建项目
+- 自动运行 `npm start` 启动服务
+- 环境变量会自动配置
+
+5. **访问应用**
+
+部署完成后，Zeabur 会提供一个公网 URL，格式如：
+```
+https://your-app.zeabur.app
+```
+
+### 环境变量配置
+
+在 Zeabur 控制台中，可以设置以下环境变量（可选）：
+
+- `PORT`: 服务端口（默认 3001）
+- `NODE_ENV`: 运行环境（默认 production）
+
+### 其他部署平台
+
+你也可以选择其他免费部署平台：
+
+- **Render** (render.com): 750 小时/月免费额度，但冷启动较慢
+- **Fly.io**: 全球边缘节点，配置相对复杂
+
 ## License
 
 MIT
