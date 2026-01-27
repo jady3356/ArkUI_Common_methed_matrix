@@ -10,6 +10,7 @@
     "frontend:build": "cd src/frontend && npm install && npm run build",
     "scan": "tsx src/scanner/index.ts",
     "init-data": "node scripts/init-data.js",
+    "debug": "node scripts/debug-paths.js",
     "build": "npm run init-data && npm run frontend:build && tsc",
     "start": "node dist/server/index.js"
   },

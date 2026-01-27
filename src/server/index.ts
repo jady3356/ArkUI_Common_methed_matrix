@@ -2,24 +2,55 @@ import express from 'express';
 import cors from 'cors';
 import * as path from 'path';
 import { SupportMatrix } from '../types';
+import * as fs from 'fs';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 静态文件路径：Zeabur 部署时使用绝对路径
-const isProduction = process.env.NODE_ENV === 'production';
-let staticPath: string;
-let DATA_FILE: string;
+// 智能查找静态文件目录
+function findStaticPath(): string {
+  const cwd = process.cwd();
+  const possiblePaths = [
+    path.join(cwd, 'src/frontend/dist'),
+    path.join(cwd, 'dist/frontend/dist'),
+    path.join(cwd, 'frontend/dist'),
+    path.join(__dirname, '../../src/frontend/dist'),
+    path.join(__dirname, '../frontend/dist'),
+  ];
 
-if (isProduction) {
-  // Zeabur: /src/dist/server/index.js -> /src/src/frontend/dist
-  staticPath = path.join(process.cwd(), 'src/frontend/dist');
-  DATA_FILE = path.join(process.cwd(), 'data/component_support_matrix.json');
-} else {
-  // 本地开发
-  staticPath = path.join(__dirname, '../frontend/dist');
-  DATA_FILE = path.join(__dirname, '../../data/component_support_matrix.json');
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      console.log(`✅ 找到静态文件目录: ${p}`);
+      return p;
+    }
+  }
+
+  console.log('⚠️  未找到静态文件目录，使用默认路径');
+  return path.join(cwd, 'src/frontend/dist');
 }
+
+// 智能查找数据文件
+function findDataFile(): string {
+  const cwd = process.cwd();
+  const possiblePaths = [
+    path.join(cwd, 'data/component_support_matrix.json'),
+    path.join(cwd, 'dist/data/component_support_matrix.json'),
+  ];
+
+  for (const p of possiblePaths) {
+    const dir = path.dirname(p);
+    if (fs.existsSync(dir)) {
+      console.log(`✅ 找到数据目录: ${dir}`);
+      return p;
+    }
+  }
+
+  console.log('⚠️  未找到数据文件，使用默认路径');
+  return path.join(cwd, 'data/component_support_matrix.json');
+}
+
+const staticPath = findStaticPath();
+const DATA_FILE = findDataFile();
 
 // 中间件
 app.use(cors());
@@ -29,6 +60,8 @@ app.use(express.static(staticPath));
 
 console.log(`📁 静态文件目录: ${staticPath}`);
 console.log(`📊 数据文件: ${DATA_FILE}`);
+console.log(`🔧 当前工作目录: ${process.cwd()}`);
+console.log(`🔧 __dirname: ${__dirname}`);
 
 /**
  * GET /api/matrix
