@@ -6,15 +6,20 @@ import { SupportMatrix } from '../types';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 静态文件路径：支持开发和生产环境
+// 静态文件路径：Zeabur 部署时使用绝对路径
 const isProduction = process.env.NODE_ENV === 'production';
-const staticPath = isProduction
-  ? path.join(__dirname, '../../src/frontend/dist')
-  : path.join(__dirname, '../frontend/dist');
+let staticPath: string;
+let DATA_FILE: string;
 
-const DATA_FILE = isProduction
-  ? path.join(__dirname, '../data/component_support_matrix.json')
-  : path.join(__dirname, '../../data/component_support_matrix.json');
+if (isProduction) {
+  // Zeabur: /src/dist/server/index.js -> /src/src/frontend/dist
+  staticPath = path.join(process.cwd(), 'src/frontend/dist');
+  DATA_FILE = path.join(process.cwd(), 'data/component_support_matrix.json');
+} else {
+  // 本地开发
+  staticPath = path.join(__dirname, '../frontend/dist');
+  DATA_FILE = path.join(__dirname, '../../data/component_support_matrix.json');
+}
 
 // 中间件
 app.use(cors());
