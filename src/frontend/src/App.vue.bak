@@ -1,0 +1,27 @@
+<template>
+  <div id="app">
+    <h1>测试页面</h1>
+    <p>组件数量: {{ components.length }}</p>
+    <p>属性数量: {{ properties.length }}</p>
+    <button @click="testData">测试数据</button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+
+const components = ref([1, 2, 3, 4, 5]);
+const properties = ref(Array.from({ length: 156 }, (_, i) => `prop${i}`));
+
+function testData() {
+  console.log('组件:', components.value.length);
+  console.log('属性:', properties.value.length);
+  console.log('总单元格:', components.value.length * properties.value.length);
+}
+</script>
+
+<style>
+#app {
+  padding: 20px;
+}
+</style>
