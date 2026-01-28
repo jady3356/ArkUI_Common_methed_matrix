@@ -45,39 +45,83 @@ export class DocParser {
         return;
       }
 
-      // 查找所有"不支持"的说明
-      const patterns = [
-        // 不支持某个属性
-        /不支持\s+通过?(\w+)\s+属性/gi,
-        /不支持\s+(\w+)\s+属性/gi,
-        /(\w+)\s+属性\s+不支持/gi,
-        // 不支持某个功能
-        /不支持\s+(\w+)/gi,
-        // 表格中的不支持说明
-        /\|\s*(\w+)\s*\|\s*不支持/gi,
-      ];
-
       const unsupportedProps = new Set<string>();
 
+      // 定义所有表示属性不生效/不支持的模式
+      const patterns = [
+        // ===== 不支持 =====
+        // 不支持某个属性
+        /不支持\s+(?:通过)?(?:调用)?(?:设置)?(?:[\u4e00-\u9fa5]+\s+)?(\w+)\s+(?:属性|接口|方法|API)/gi,
+        /(\w+)\s+(?:属性|接口|方法|API)\s+不支持/gi,
+        /不支持\s+(\w+)\s+(?:属性|接口|方法)/gi,
+        /不支持\s+通过\s+(\w+)\s+属性/gi,
+        // 一般性不支持
+        /不支持\s+(\w+)(?!\s+[:：])/gi,
+        // 表格中的不支持
+        /\|\s*(\w+)\s*\|\s*不支持/gi,
+
+        // ===== 不生效 =====
+        /(\w+)\s+(?:属性|接口|方法)?\s*不生效/gi,
+        /(?:设置|配置|使用)?(\w+)\s+(?:属性|接口|方法)?\s*(?:时|后)?\s*不生效/gi,
+        /不生效\s*(?::|：)?\s*设置\s+(\w+)/gi,
+        /对\s+(\w+)\s+不生效/gi,
+        /(\w+)\s+对\s+\S+\s+不生效/gi,
+
+        // ===== 无效 =====
+        /(\w+)\s+(?:设置|配置|参数)?\s*无效/gi,
+        /设置\s+(\w+)\s+(?:无效|不起作用)/gi,
+        /(\w+)\s+参数\s+无效/gi,
+
+        // ===== 没有效果/不起作用 =====
+        /(\w+)\s+(?:属性|接口|方法)?\s*(?:没有效果|不起作用|无法生效|不会生效)/gi,
+        /使用\s+(\w+)\s+(?:没有效果|不起作用)/gi,
+        /(\w+)\s+不会\s+(?:生效|响应|起作用)/gi,
+
+        // ===== 不响应 =====
+        /(\w+)\s+(?:属性|接口|方法)?\s*不响应/gi,
+        /不响应\s+(\w+)/gi,
+
+        // ===== 失效 =====
+        /(\w+)\s+(?:属性|接口|方法)?\s*失效/gi,
+        /(\w+)\s+会\s+失效/gi,
+
+        // ===== 无法设置/不能设置 =====
+        /无法\s+(?:设置|配置|修改)\s+(\w+)/gi,
+        /不能\s+(?:设置|配置|修改)\s+(\w+)/gi,
+        /(\w+)\s+无法\s+(?:设置|配置|修改)/gi,
+
+        // ===== 特定上下文的限制 =====
+        /当\s+[^。]{0,50}?\s+(\w+)\s+[^。]{0,30}?(?:不生效|无效|不支持|不响应)/gi,
+        /(?:此|该|本)\s+[^。]{0,30}?\s+(\w+)\s+[^。]{0,30}?(?:不生效|无效|不支持)/gi,
+      ];
+
+      // 应用所有模式
       for (const pattern of patterns) {
         let match;
+        // 重置正则表达式的 lastIndex
+        pattern.lastIndex = 0;
         while ((match = pattern.exec(content)) !== null) {
           const propName = match[1];
-          // 过滤掉一些明显不是属性名的词
           if (this.isLikelyPropertyName(propName)) {
             unsupportedProps.add(propName);
           }
         }
       }
 
-      // 特殊处理：查找"不支持"后面的属性列表
-      const listPattern = /不支持\s+[:：]\s*([^\n]+)/gi;
-      let listMatch;
-      while ((listMatch = listPattern.exec(content)) !== null) {
-        const list = listMatch[1];
-        // 提取中英文属性名
-        const props = list.match(/[a-zA-Z]+/g);
-        if (props) {
+      // 特殊处理：查找并列的属性列表
+      // 例如："不支持 A、B、C 属性" 或 "A、B、C 不生效"
+      const listPatterns = [
+        /(?:不支持|不生效|无效)\s+[:：]?\s*(?:[\u4e00-\u9fa5]+\s+)?([a-zA-Z][a-zA-Z0-9]*(?:[、,，]\s*[a-zA-Z][a-zA-Z0-9]*)+)/gi,
+        /([a-zA-Z][a-zA-Z0-9]*(?:[、,，]\s*[a-zA-Z][a-zA-Z0-9]*)+)\s+(?:属性|接口|方法)?\s*(?:不支持|不生效|无效)/gi,
+      ];
+
+      for (const pattern of listPatterns) {
+        let match;
+        pattern.lastIndex = 0;
+        while ((match = pattern.exec(content)) !== null) {
+          const list = match[1];
+          // 分割属性名（支持中文顿号、英文逗号）
+          const props = list.split(/[、,，]/).map(p => p.trim()).filter(p => p);
           props.forEach(prop => {
             if (this.isLikelyPropertyName(prop)) {
               unsupportedProps.add(prop);
@@ -86,6 +130,7 @@ export class DocParser {
         }
       }
 
+      // 缓存结果
       if (unsupportedProps.size > 0) {
         if (!this.unsupportedCache.has(componentName)) {
           this.unsupportedCache.set(componentName, new Set());
@@ -93,6 +138,9 @@ export class DocParser {
         unsupportedProps.forEach(prop => {
           this.unsupportedCache.get(componentName)!.add(prop);
         });
+
+        // 调试输出（可选）
+        // console.log(`${componentName}: ${Array.from(unsupportedProps).join(', ')}`);
       }
 
     } catch (error) {
@@ -124,25 +172,39 @@ export class DocParser {
    * 检查一个词是否像属性名
    */
   private isLikelyPropertyName(word: string): boolean {
-    // 过滤掉一些常见的非属性词
+    // 扩展的黑名单 - 常见的非属性词
     const blacklist = [
-      'the', 'this', 'that', 'with', 'from', 'when', 'while',
-      '以下', '为', '主要', '包括', '等', '和', '或', '但是',
-      '可以', '需要', '应该', '使用', '实现', '调用', '设置',
-      '获取', '创建', '删除', '更新', '修改', '添加', '移除',
-      '当前', '默认', '其他', '所有', '支持', '不支持',
-      'able', 'ible', 'ful', 'less', 'ous', 'ive', 'al', 'ic',
-      'ly', 'wise', 'ward', 'wards', 'ways', 'ward',
-      'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for',
-      'is', 'are', 'was', 'were', 'be', 'been', 'being',
+      // 英文常用词
+      'the', 'this', 'that', 'with', 'from', 'when', 'while', 'which', 'where',
+      '以下', '为', '主要', '包括', '等', '和', '或', '但是', '因此', '所以',
+      '可以', '需要', '应该', '使用', '实现', '调用', '设置', '配置',
+      '获取', '创建', '删除', '更新', '修改', '添加', '移除', '变化',
+      '当前', '默认', '其他', '所有', '支持', '不支持', '生效', '无效',
+      // 英文动词和形容词后缀
+      'able', 'ible', 'ful', 'less', 'ous', 'ive', 'al', 'ic', 'ed', 'ing',
+      'ly', 'wise', 'ward', 'wards', 'ways',
+      // 介词和冠词
+      'a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'by', 'with',
+      'from', 'into', 'onto', 'upon', 'within', 'without',
+      // 助动词
+      'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am',
       'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
-      'could', 'should', 'may', 'might', 'must', 'can',
-      'not', 'no', 'yes', 'true', 'false', 'null', 'undefined',
+      'could', 'should', 'may', 'might', 'must', 'can', 'cannot',
+      // 常用否定词
+      'not', 'no', 'yes', 'true', 'false', 'null', 'undefined', 'none',
+      // 数量词
+      'one', 'two', 'three', 'first', 'second', 'third', 'last', 'next',
+      // 时间和位置
+      'time', 'date', 'before', 'after', 'during', 'under', 'over',
+      // UI 相关但不是属性
+      'component', 'element', 'node', 'tree', 'list', 'item',
+      // 常见技术术语但不是属性
+      'api', 'sdk', 'ui', 'ux', 'html', 'css', 'js', 'ts', 'json',
     ];
 
     const lower = word.toLowerCase();
 
-    // 必须是字母开头，长度2-30
+    // 必须是字母开头，可以包含数字，长度 2-30
     if (!/^[a-z][a-z0-9]*$/i.test(word) || word.length < 2 || word.length > 30) {
       return false;
     }
@@ -151,6 +213,10 @@ export class DocParser {
     if (blacklist.includes(lower)) {
       return false;
     }
+
+    // 优先考虑常见的 ArkUI 属性名模式
+    // 例如: width, height, fontSize, backgroundColor, borderRadius
+    // 通常以小写字母开头，可能是驼峰命名
 
     return true;
   }
