@@ -1,17 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { PropertySupport, SupportStatus } from '../types';
+import { DocParser } from './docParser';
 
 /**
  * 支持度检查器 - 判定组件是否支持某个属性
  */
 export class SupportChecker {
+  private docParser: DocParser;
+
   constructor(
     private enginePath: string,
     private docsPath: string,
     private samplesPath: string,
     private sdkPath: string
-  ) {}
+  ) {
+    // 初始化文档解析器
+    this.docParser = new DocParser(docsPath);
+  }
 
   /**
    * 检查组件对属性的支持情况
@@ -24,6 +30,16 @@ export class SupportChecker {
     // 如果存在手动修改的数据，保留其状态
     if (existingData?.source === 'manual') {
       return existingData;
+    }
+
+    // Rule 0: 优先检查文档中的"不支持"声明
+    if (this.docParser.isPropertyUnsupported(componentName, propertyName)) {
+      return {
+        isSupported: 'unsupported',
+        source: 'auto',
+        lastUpdated: new Date().toISOString(),
+        notes: 'API文档明确声明不支持'
+      };
     }
 
     // Rule 1: 检查组件定义文件是否扩展了 CommonMethod
